@@ -52,30 +52,60 @@ addTaskButton.addEventListener('click', function () {
 });
 
 // READ (Afficher toutes les tâches)
+
 function renderTasks() {
-    taskList.innerHTML = ''; 
-    
-    // Sort tasks by completion status
-    tasks.sort((a, b) => a.completed - b.completed);
-    
+    taskList.innerHTML = ''; // Очищаем список
+    const fragment = document.createDocumentFragment();
+
+    tasks.sort((a, b) => {
+        if (a.completed !== b.completed) {
+            return +a.completed - +b.completed; 
+        }
+        if (!a.deadline && !b.deadline) return 0; 
+        if (!a.deadline) return 1; 
+        if (!b.deadline) return -1;
+        return new Date(a.deadline) - new Date(b.deadline);
+    });
+
     tasks.forEach(task => {
         const taskDiv = document.createElement('li');
         taskDiv.classList.add('task');
         
         if (task.completed) taskDiv.classList.add('completed');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.classList.add('task-checkbox');
+        checkbox.checked = task.completed;
+        checkbox.addEventListener('change', () => toggleTaskCompletion(task.id));
+
+        const taskText = document.createElement('span');
+        taskText.classList.add('task-text');
+        taskText.textContent = task.text;
+
+        const taskDeadline = document.createElement('span');
+        taskDeadline.classList.add('task-deadline');
+        taskDeadline.textContent = `Échéance : ${task.deadline ? formatDate(task.deadline) : 'Aucune deadline'}`;
+
+        const editButton = document.createElement('button');
+        editButton.classList.add('button-modif');
+        editButton.textContent = 'Modifier';
+        editButton.addEventListener('click', () => editTask(task.id));
+
+        const deleteButton = document.createElement('button');
+        deleteButton.classList.add('button-delete');
+        deleteButton.innerHTML = '🗑️';
+        deleteButton.addEventListener('click', () => deleteTask(task.id));
+
+        taskDiv.append(checkbox, taskText, taskDeadline, editButton, deleteButton);
         
-        taskDiv.innerHTML = `
-            <input type="checkbox" class="task-checkbox" onchange="toggleTaskCompletion(${task.id})" ${task.completed ? 'checked' : ''}>
-            <span class="task-text">${task.text}</span>
-            <button class="button-modif" onclick="editTask(${task.id})">Modifier</button>
-            <button class="button-delete" onclick="deleteTask(${task.id})">🗑️</button>
-        `;
-
         taskDiv.classList.add('task-move');
-        setTimeout(() => taskDiv.classList.remove('task-move'), 500);
+        taskDiv.addEventListener('animationend', () => taskDiv.classList.remove('task-move'));
 
-        taskList.appendChild(taskDiv);
+        fragment.appendChild(taskDiv);
     });
+
+    taskList.appendChild(fragment);
 }
 
 console.log(tasks);
